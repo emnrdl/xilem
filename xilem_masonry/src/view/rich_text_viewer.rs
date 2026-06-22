@@ -9,7 +9,7 @@ use masonry::properties::LineBreaking;
 
 use crate::core::{MessageCtx, MessageResult, Mut, View, ViewMarker};
 use crate::view::{Portal, Prose, portal, prose};
-use crate::{Pod, ViewCtx, WidgetView};
+use crate::{Color, Pod, ViewCtx, WidgetView};
 
 /// A scrollable, selectable rich text viewer.
 ///
@@ -27,6 +27,7 @@ where
         text_size: masonry::theme::TEXT_SIZE_NORMAL,
         weight: FontWeight::NORMAL,
         line_break_mode: LineBreaking::WordWrap,
+        text_color: None,
         constrain_horizontal: true,
         constrain_vertical: false,
         phantom: PhantomData,
@@ -40,6 +41,7 @@ pub struct RichTextViewer<State, Action> {
     text_size: f32,
     weight: FontWeight,
     line_break_mode: LineBreaking,
+    text_color: Option<Color>,
     constrain_horizontal: bool,
     constrain_vertical: bool,
     phantom: PhantomData<fn(State) -> Action>,
@@ -65,6 +67,12 @@ where
     /// Set how the document should wrap or overflow horizontally.
     pub fn line_break_mode(mut self, line_break_mode: LineBreaking) -> Self {
         self.line_break_mode = line_break_mode;
+        self
+    }
+
+    /// Set the selectable document text color.
+    pub fn text_color(mut self, text_color: Color) -> Self {
+        self.text_color = Some(text_color);
         self
     }
 
@@ -136,13 +144,20 @@ where
     Action: 'static,
 {
     fn inner(&self) -> Portal<Prose<State, Action>, State, Action> {
-        portal(
-            prose(self.content.clone())
-                .text_size(self.text_size)
-                .weight(self.weight)
-                .line_break_mode(self.line_break_mode),
-        )
-        .constrain_horizontal(self.constrain_horizontal)
-        .constrain_vertical(self.constrain_vertical)
+        portal(self.prose_view())
+            .constrain_horizontal(self.constrain_horizontal)
+            .constrain_vertical(self.constrain_vertical)
+    }
+
+    fn prose_view(&self) -> Prose<State, Action> {
+        let view = prose(self.content.clone())
+            .text_size(self.text_size)
+            .weight(self.weight)
+            .line_break_mode(self.line_break_mode);
+        if let Some(text_color) = self.text_color {
+            view.text_color(text_color)
+        } else {
+            view
+        }
     }
 }
